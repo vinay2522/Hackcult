@@ -1,49 +1,54 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+// components/ViewEvidence.js
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-// Function to generate a random case ID
-const generateRandomId = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString(); // Generates a random 6-digit case ID
-};
-
-// Function to generate a 15-character unique hash with all capital letters
-const generateUniqueHash = () => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'; // All capital letters
-  let result = '';
-  for (let i = 0; i < 15; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return result; // Returns a random 15-character string
-};
-
-// ViewEvidence Component
 const ViewEvidence = () => {
-  const caseId = generateRandomId(); // Generate a random case ID
-  const uniqueHash = generateUniqueHash(); // Generate a unique hash
+  const [evidence, setEvidence] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEvidence = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_URL}/evidence`,
+          {
+            headers: {
+              'x-auth-token': token
+            }
+          }
+        );
+        setEvidence(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching evidence:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchEvidence();
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
 
   return (
-    <div style={styles.container}>
-      <h1>Evidence Submitted Successfully!</h1>
-      <p>Case ID: {caseId}</p>
-      <p>Unique Hash: {uniqueHash}</p>
-      <Link to="/" style={styles.link}>Go Back</Link>
+    <div className="evidence-list-container">
+      <h2>Evidence List</h2>
+      <div className="evidence-grid">
+        {evidence.map(item => (
+          <div key={item._id} className="evidence-card">
+            <h3>{item.title}</h3>
+            <p><strong>Description:</strong> {item.description}</p>
+            <p><strong>Date/Time:</strong> {new Date(item.datetime).toLocaleString()}</p>
+            <p><strong>Location:</strong> {item.location}</p>
+            {item.ipfsHash && (
+              <p><strong>IPFS Hash:</strong> {item.ipfsHash}</p>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
-};
-
-// Styles
-const styles = {
-  container: {
-    padding: '2rem',
-    maxWidth: '600px',
-    margin: '0 auto',
-    textAlign: 'center',
-  },
-  link: {
-    marginTop: '1rem',
-    color: '#3498db',
-    textDecoration: 'none',
-  },
 };
 
 export default ViewEvidence;

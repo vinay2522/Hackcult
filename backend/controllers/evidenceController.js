@@ -1,56 +1,48 @@
-// controllers/evidenceController.js
+const Evidence = require('../models/Evidence');
 
-const uploadEvidence = async (req, res) => {
-    try {
-        // Your upload logic here
-        const { file } = req;
-        if (!file) {
-            return res.status(400).json({ message: 'No file uploaded' });
-        }
-
-        // Add your file processing logic here
-
-        res.status(200).json({ 
-            message: 'Evidence uploaded successfully',
-            // Add other response data as needed
-        });
-    } catch (error) {
-        console.error('Upload error:', error);
-        res.status(500).json({ message: 'Error uploading evidence' });
-    }
+exports.addEvidence = async (req, res) => {
+  try {
+    const { title, description, datetime, location } = req.body;
+    const newEvidence = new Evidence({
+      title,
+      description,
+      datetime,
+      location,
+      owner: req.user.id
+    });
+    const evidence = await newEvidence.save();
+    res.json(evidence);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 };
 
-const getEvidence = async (req, res) => {
-    try {
-        const { id } = req.params;
-        // Your logic to fetch specific evidence
-        
-        res.status(200).json({
-            message: 'Evidence retrieved successfully',
-            // Add evidence data
-        });
-    } catch (error) {
-        console.error('Fetch error:', error);
-        res.status(500).json({ message: 'Error fetching evidence' });
+exports.getEvidence = async (req, res) => {
+  try {
+    const evidence = await Evidence.findById(req.params.id);
+    if (!evidence) {
+      return res.status(404).json({ msg: 'Evidence not found' });
     }
+    if (evidence.owner.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+    res.json(evidence);
+  } catch (err) {
+    console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Evidence not found' });
+    }
+    res.status(500).send('Server error');
+  }
 };
 
-const getAllEvidence = async (req, res) => {
-    try {
-        // Your logic to fetch all evidence
-        
-        res.status(200).json({
-            message: 'All evidence retrieved successfully',
-            // Add evidence list
-        });
-    } catch (error) {
-        console.error('Fetch error:', error);
-        res.status(500).json({ message: 'Error fetching evidence list' });
-    }
-};
-
-module.exports = {
-    uploadEvidence,
-    getEvidence,
-    getAllEvidence
+exports.getAllEvidence = async (req, res) => {
+  try {
+    const evidence = await Evidence.find({ owner: req.user.id }).sort({ date: -1 });
+    res.json(evidence);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 };
