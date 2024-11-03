@@ -1,4 +1,42 @@
 const Evidence = require('../models/Evidence');
+// backend/controllers/evidenceController.js
+const contractService = require('../services/contractService');
+const ipfsService = require('../services/ipfsservice');
+
+exports.addEvidence = async (req, res) => {
+    try {
+        const { title, description, caseNumber } = req.body;
+        const file = req.file;
+
+        // Upload file to IPFS
+        const ipfsHash = await ipfsService.uploadToIPFS(file.buffer);
+
+        // Submit to blockchain
+        const transaction = await contractService.submitEvidence(
+            caseNumber,
+            ipfsHash,
+            description,
+            req.user.walletAddress
+        );
+
+        // Save to database
+        const evidence = new Evidence({
+            title,
+            description,
+            caseNumber,
+            ipfsHash,
+            transactionHash: transaction.transactionHash,
+            owner: req.user.id
+        });
+
+        await evidence.save();
+        res.status(201).json({ success: true, evidence });
+
+    } catch (error) {
+        console.error('Evidence submission error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
 
 exports.addEvidence = async (req, res) => {
   try {
@@ -44,5 +82,16 @@ exports.getAllEvidence = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
+  }
+};
+const evidenceService = require('../services/evidenceService');
+
+exports.addEvidence = async (req, res) => {
+  try {
+    const evidence = await evidenceService.createEvidence(req.body, req.file, req.user.id);
+    res.status(201).json(evidence);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Error creating evidence' });
   }
 };

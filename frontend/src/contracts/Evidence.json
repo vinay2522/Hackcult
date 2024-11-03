@@ -1,0 +1,33 @@
+{
+    "contractName": "Evidence",
+    "abi": [
+      {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "inputs": [
+          {
+            "internalType": "string",
+            "name": "_hash",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "_description",
+            "type": "string"
+          }
+        ],
+        "name": "addEvidence",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ],
+    "networks": {
+      "5777": {
+        "address": "0x0000000000000000000000000000000000000000"
+      }
+    }
+  }
