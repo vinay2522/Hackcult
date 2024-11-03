@@ -19,35 +19,31 @@ const AddEvidence = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem('token');
-      const formDataToSend = new FormData();
-      
-      Object.keys(formData).forEach(key => {
-        formDataToSend.append(key, formData[key]);
-      });
-
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/evidence/add`,
-        formDataToSend,
-        {
-          headers: {
-            'x-auth-token': token,
-            'Content-Type': 'multipart/form-data'
-          }
+  // frontend/src/components/AddEvidence.js
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  const formData = new FormData();
+  Object.keys(evidenceData).forEach(key => {
+    formData.append(key, evidenceData[key]);
+  });
+  
+  try {
+    const response = await axios.post(
+      `${process.env.REACT_APP_API_URL}/evidence/add`,
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data'
         }
-      );
-
-      alert('Evidence added successfully!');
-      // Redirect to evidence list
-      window.location.href = '/view';
-    } catch (error) {
-      console.error('Error adding evidence:', error);
-      alert('Error adding evidence');
-    }
-  };
+      }
+    );
+    alert('Evidence added successfully!');
+    navigate('/view');
+  } catch (error) {
+    alert(error.response?.data?.message || 'Failed to add evidence');
+  }
+};
 
   return (
     <div className="add-evidence-container">
