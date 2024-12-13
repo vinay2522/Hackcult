@@ -13,6 +13,7 @@ contract Evidence {
     mapping(uint256 => EvidenceItem) public evidences;
     uint256 public evidenceCount;
 
+    // Event emitted when evidence is added
     event EvidenceAdded(
         uint256 indexed id,
         string ipfsHash,
@@ -21,6 +22,7 @@ contract Evidence {
         uint256 timestamp
     );
 
+    // Function to add evidence
     function addEvidence(
         string memory _ipfsHash,
         string memory _title,
@@ -35,6 +37,7 @@ contract Evidence {
             block.timestamp
         );
 
+        // Emit the event after adding evidence
         emit EvidenceAdded(
             evidenceCount,
             _ipfsHash,
@@ -44,6 +47,7 @@ contract Evidence {
         );
     }
 
+    // Function to retrieve evidence by id
     function getEvidence(uint256 _id)
         public
         view

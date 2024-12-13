@@ -5,7 +5,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEnvelope, faLock, faSignInAlt } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle, faFacebook } from '@fortawesome/free-brands-svg-icons';
 
-// ... rest of your component code
 const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -23,13 +22,13 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/users/login`, formData);
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/login`, formData);
       setLoading(false);
       localStorage.setItem('token', response.data.token);
       navigate('/');
     } catch (error) {
       setLoading(false);
-      setError(error.response?.data?.message || 'Login failed');
+      setError(error.response?.data?.error || 'Login failed');
     }
   };
 

@@ -1,97 +1,80 @@
 const Evidence = require('../models/Evidence');
-// backend/controllers/evidenceController.js
-const contractService = require('../services/contractService');
-const ipfsService = require('../services/ipfsservice');
-
-exports.addEvidence = async (req, res) => {
-    try {
-        const { title, description, caseNumber } = req.body;
-        const file = req.file;
-
-        // Upload file to IPFS
-        const ipfsHash = await ipfsService.uploadToIPFS(file.buffer);
-
-        // Submit to blockchain
-        const transaction = await contractService.submitEvidence(
-            caseNumber,
-            ipfsHash,
-            description,
-            req.user.walletAddress
-        );
-
-        // Save to database
-        const evidence = new Evidence({
-            title,
-            description,
-            caseNumber,
-            ipfsHash,
-            transactionHash: transaction.transactionHash,
-            owner: req.user.id
-        });
-
-        await evidence.save();
-        res.status(201).json({ success: true, evidence });
-
-    } catch (error) {
-        console.error('Evidence submission error:', error);
-        res.status(500).json({ success: false, error: error.message });
-    }
-};
+const pinataService = require('../services/pinataService');
+const blockchainService = require('../services/blockchainService');
 
 exports.addEvidence = async (req, res) => {
   try {
-    const { title, description, datetime, location } = req.body;
-    const newEvidence = new Evidence({
+    const { title, description, caseNumber } = req.body;
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({ success: false, error: 'No file uploaded' });
+    }
+
+    // Upload file to IPFS using Pinata
+    const pinataResponse = await pinataService.uploadFile(file);
+    const ipfsHash = pinataResponse.IpfsHash;
+
+    // Submit to blockchain
+    const transaction = await blockchainService.addEvidence(caseNumber, ipfsHash, req.user.id);
+
+    // Save to database
+    const evidence = new Evidence({
       title,
       description,
-      datetime,
-      location,
-      owner: req.user.id
+      caseNumber,
+      ipfsHash,
+      transactionHash: transaction.transactionHash,
+      owner: req.user.id,
     });
-    const evidence = await newEvidence.save();
-    res.json(evidence);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+
+    await evidence.save();
+    res.status(201).json({ success: true, evidence });
+  } catch (error) {
+    console.error('Evidence submission error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
 exports.getEvidence = async (req, res) => {
   try {
     const evidence = await Evidence.findById(req.params.id);
+
     if (!evidence) {
-      return res.status(404).json({ msg: 'Evidence not found' });
+      return res.status(404).json({ success: false, error: 'Evidence not found' });
     }
+
     if (evidence.owner.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'User not authorized' });
+      return res.status(403).json({ success: false, error: 'User not authorized' });
     }
-    res.json(evidence);
-  } catch (err) {
-    console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Evidence not found' });
+
+    // Verify evidence on blockchain
+    const blockchainEvidence = await blockchainService.getEvidence(evidence.transactionHash);
+
+    if (!blockchainEvidence) {
+      return res.status(404).json({ success: false, error: 'Evidence not found on blockchain' });
     }
-    res.status(500).send('Server error');
+
+    const isVerified = blockchainEvidence.ipfsHash === evidence.ipfsHash;
+
+    res.json({ success: true, evidence, isVerified });
+  } catch (error) {
+    console.error('Get evidence error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
 exports.getAllEvidence = async (req, res) => {
   try {
-    const evidence = await Evidence.find({ owner: req.user.id }).sort({ date: -1 });
-    res.json(evidence);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-};
-const evidenceService = require('../services/evidenceService');
+    const evidence = await Evidence.find({ owner: req.user.id }).sort({ createdAt: -1 });
 
-exports.addEvidence = async (req, res) => {
-  try {
-    const evidence = await evidenceService.createEvidence(req.body, req.file, req.user.id);
-    res.status(201).json(evidence);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Error creating evidence' });
+    if (!evidence.length) {
+      return res.status(404).json({ success: false, error: 'No evidence found' });
+    }
+
+    res.json({ success: true, evidence });
+  } catch (error) {
+    console.error('Get all evidence error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };

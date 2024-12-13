@@ -1,6 +1,8 @@
 // frontend/src/components/VerifyEvidence.js
 import React, { useState } from 'react';
 import useWeb3 from '../hooks/useWeb3';
+import axios from 'axios';
+
 const VerifyEvidence = () => {
     const [evidenceId, setEvidenceId] = useState('');
     const [verificationResult, setVerificationResult] = useState(null);
@@ -9,14 +11,16 @@ const VerifyEvidence = () => {
     const verifyEvidence = async (e) => {
         e.preventDefault();
         try {
-            const blockchainEvidence = await contract.methods
-                .getEvidence(evidenceId)
-                .call();
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/evidence/verify/${evidenceId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
 
-            if (blockchainEvidence.isValid) {
+            if (response.data.verified) {
                 setVerificationResult({
                     verified: true,
-                    data: blockchainEvidence
+                    data: response.data.evidence
                 });
             } else {
                 setVerificationResult({
@@ -32,6 +36,7 @@ const VerifyEvidence = () => {
             });
         }
     };
+
 
     return (
         <div className="verify-evidence-container">

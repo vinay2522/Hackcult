@@ -1,19 +1,22 @@
 {
-  "name": "temp-blockchain",
+  "name": "hackkshetra",
   "version": "1.0.0",
-  "main": "truffle-config.js",
-  "directories": {
-    "test": "test"
-  },
+  "description": "",
+  "main": "index.js",
   "scripts": {
+    "start": "truffle develop",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "@truffle/hdwallet-provider": "^2.1.15",
-    "dotenv": "^16.4.5"
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.5",
+    "form-data": "^4.0.1",
+    "ipfs-http-client": "^60.0.1",
+    "mongoose": "^8.9.0",
+    "multer": "^1.4.5-lts.1"
   }
 }

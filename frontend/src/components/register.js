@@ -2,50 +2,41 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faEnvelope, faLock, faUserPlus } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faEnvelope, faLock, faUserPlus, faWallet } from '@fortawesome/free-solid-svg-icons';
 
 const Register = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    walletAddress: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [passwordStrength, setPasswordStrength] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     setError('');
-    if (name === 'password') {
-      checkPasswordStrength(value);
-    }
   };
 
-  const checkPasswordStrength = (password) => {
-    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/;
-    const mediumRegex = /^(((?=.*[a-z])(?=.*[A-Z]))|((?=.*[a-z])(?=.*[0-9]))|((?=.*[A-Z])(?=.*[0-9])))(?=.{6,})/;
-    
-    if (strongRegex.test(password)) {
-      setPasswordStrength('strong');
-    } else if (mediumRegex.test(password)) {
-      setPasswordStrength('medium');
-    } else {
-      setPasswordStrength('weak');
-    }
-  };
-  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/users/register`, formData);
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/auth/register`, formData);
       setLoading(false);
+      // Handle successful registration (e.g., store token, redirect)
+      localStorage.setItem('token', response.data.token);
       navigate('/login');
     } catch (error) {
       setLoading(false);
-      setError(error.response?.data?.message || 'Registration failed');
+      setError(error.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', error.response?.data || error.message);
     }
   };
-  
+
   return (
     <div className="register-container">
       <div className="register-card">
@@ -53,9 +44,19 @@ const Register = () => {
           <h2>Create Account</h2>
           <p>Join our secure evidence management platform</p>
         </div>
-  
-        {error && <div className="error-message">{error}</div>}
-  
+
+        {error && (
+          <div className="error-message" style={{
+            color: 'red',
+            padding: '10px',
+            marginBottom: '10px',
+            borderRadius: '4px',
+            backgroundColor: '#ffebee'
+          }}>
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="register-form">
           <div className="form-group">
             <div className="input-group">
@@ -64,13 +65,14 @@ const Register = () => {
                 type="text"
                 name="username"
                 placeholder="Username"
+                value={formData.username}
                 onChange={handleChange}
                 required
                 className="form-input"
               />
             </div>
           </div>
-  
+
           <div className="form-group">
             <div className="input-group">
               <FontAwesomeIcon icon={faEnvelope} className="input-icon" />
@@ -78,13 +80,14 @@ const Register = () => {
                 type="email"
                 name="email"
                 placeholder="Email"
+                value={formData.email}
                 onChange={handleChange}
                 required
                 className="form-input"
               />
             </div>
           </div>
-  
+
           <div className="form-group">
             <div className="input-group">
               <FontAwesomeIcon icon={faLock} className="input-icon" />
@@ -92,16 +95,29 @@ const Register = () => {
                 type="password"
                 name="password"
                 placeholder="Password"
+                value={formData.password}
                 onChange={handleChange}
                 required
                 className="form-input"
               />
             </div>
-            <div className={`password-strength-meter ${passwordStrength}`}>
-              <div></div>
+          </div>
+
+          <div className="form-group">
+            <div className="input-group">
+              <FontAwesomeIcon icon={faWallet} className="input-icon" />
+              <input
+                type="text"
+                name="walletAddress"
+                placeholder="Wallet Address"
+                value={formData.walletAddress}
+                onChange={handleChange}
+                required
+                className="form-input"
+              />
             </div>
           </div>
-  
+
           <button 
             type="submit" 
             className={`register-button ${loading ? 'loading' : ''}`}
@@ -116,13 +132,13 @@ const Register = () => {
             )}
           </button>
         </form>
-  
+
         <div className="register-footer">
           <p>Already have an account? <a href="/login">Login here</a></p>
         </div>
       </div>
     </div>
   );
-  };
-  
-  export default Register;
+};
+
+export default Register;
