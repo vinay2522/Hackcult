@@ -1,67 +1,52 @@
 const express = require('express');
-const router = express.Router();
-const auth = require('../middleware/auth');
-const Evidence = require('../models/Evidence');
 const multer = require('multer');
-const path = require('path');
-const pinataService = require('../services/pinataService');
-const blockchainService = require('../services/blockchainService');
-
-// Configure multer for file upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/')
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname))
-  }
-});
-
-const upload = multer({ storage: storage });
+const EvidenceService = require('../services/evidenceService');
+const BlockchainService = require('../services/blockchainService');
+const auth = require('../middleware/auth');
+const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() }); // In-memory storage for files
 
 // Add new evidence
-router.post('/add', auth, upload.single('file'), async (req, res) => {
+router.post('/add', upload.single('file'), async (req, res) => {
   try {
-    const { title, description, caseNumber } = req.body;
+    const { title, description, caseNumber, walletAddress } = req.body;
     const file = req.file;
 
     if (!file) {
-      return res.status(400).json({ success: false, error: 'No file uploaded' });
+      return res.status(400).json({ error: 'File is required' });
     }
 
-    // Upload file to IPFS using Pinata
-    const ipfsHash = await pinataService.pinFileToIPFS(file.buffer, file.originalname);
+    // Ensure blockchain is initialized
+    if (!BlockchainService.account) {
+      await BlockchainService.init();
+    }
 
-    // Submit to blockchain
-    const transaction = await blockchainService.addEvidence(caseNumber, ipfsHash, req.user.id);
+    const ownerAddress = walletAddress || BlockchainService.account; // Use provided walletAddress or default account
+    const evidence = await EvidenceService.createEvidence(
+      { title, description, caseNumber },
+      file,
+      ownerAddress
+    );
 
-    // Save to database
-    const newEvidence = new Evidence({
-      title,
-      description,
-      caseNumber,
-      ipfsHash,
-      transactionHash: transaction.transactionHash,
-      owner: req.user.id,
-    });
-
-    const savedEvidence = await newEvidence.save();
-
-    res.status(201).json({ success: true, evidence: savedEvidence });
+    res.status(201).json({ success: true, evidence });
   } catch (error) {
-    console.error('Error in /add route:', error);
-    res.status(500).json({ success: false, error: error.message || 'Server error' });
+    console.error('Error in /add route:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Get all evidence
+// Get all evidence for the logged-in user
+
 router.get('/', auth, async (req, res) => {
   try {
     const evidence = await Evidence.find({ owner: req.user.id });
-    res.json({ success: true, evidence });
+    if (!evidence || evidence.length === 0) {
+      return res.status(404).json({ message: 'No evidence found' });
+    }
+    res.status(200).json({ success: true, evidence });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Server error' });
+    console.error('Error fetching evidence:', error.message);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 

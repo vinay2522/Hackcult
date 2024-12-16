@@ -1,48 +1,52 @@
 const axios = require('axios');
 const FormData = require('form-data');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config(); // Ensure this is configured
-
-const pinataApiKey = String(process.env.PINATA_API_KEY || '');
-const pinataSecretApiKey = String(process.env.PINATA_SECRET_API_KEY || '');
-
-// Debugging environment variables
-console.log('Pinata API Key:', typeof pinataApiKey, pinataApiKey);
-console.log('Pinata Secret API Key:', typeof pinataSecretApiKey, pinataSecretApiKey);
+require('dotenv').config();
 
 const pinataService = {
-  uploadFile: async (file) => {
+  async pinFileToIPFS(buffer, fileName) {
+    if (!buffer || !fileName) {
+      throw new Error('Invalid file data provided to Pinata upload');
+    }
+
     const url = `https://api.pinata.cloud/pinning/pinFileToIPFS`;
     const data = new FormData();
-    data.append('file', file.buffer, {
-      filename: file.originalname,
-      contentType: file.mimetype,
-    });
-
-    const metadata = JSON.stringify({
-      name: file.originalname,
-    });
-    data.append('pinataMetadata', metadata);
-
-    const options = JSON.stringify({
-      cidVersion: 0,
-    });
-    data.append('pinataOptions', options);
 
     try {
-      const response = await axios.post(url, data, {
-        maxContentLength: 'Infinity', // Prevent issues with large files
-        headers: {
-          'Content-Type': `multipart/form-data; boundary=${data._boundary}`,
-          pinata_api_key: pinataApiKey,
-          pinata_secret_api_key: pinataSecretApiKey,
+      // Append file data
+      data.append('file', buffer, { filename: fileName });
+
+      // Add metadata
+      const metadata = JSON.stringify({
+        name: fileName,
+        keyvalues: {
+          uploadedAt: new Date().toISOString(),
         },
       });
-      return response.data;
+      data.append('pinataMetadata', metadata);
+
+      // Add options
+      const options = JSON.stringify({
+        cidVersion: 1,
+        wrapWithDirectory: false,
+      });
+      data.append('pinataOptions', options);
+
+      const response = await axios.post(url, data, {
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${data._boundary}`,
+          pinata_api_key: process.env.PINATA_API_KEY,
+          pinata_secret_api_key: process.env.PINATA_SECRET_API_KEY,
+        },
+      });
+
+      return {
+        ipfsHash: response.data.IpfsHash,
+        pinSize: response.data.PinSize,
+        timestamp: new Date().toISOString(),
+      };
     } catch (error) {
-      console.error('Error uploading file to Pinata:', error.response ? error.response.data : error.message);
-      throw new Error('Error uploading file to Pinata');
+      console.error('Pinata upload error:', error.response?.data || error.message);
+      throw new Error('Failed to upload file to Pinata');
     }
   },
 };

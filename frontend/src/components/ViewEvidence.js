@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import EvidenceCard from './Evidencecard';
 
 const ViewEvidence = () => {
   const [evidence, setEvidence] = useState([]);
@@ -9,41 +8,49 @@ const ViewEvidence = () => {
 
   useEffect(() => {
     const fetchEvidence = async () => {
-      setLoading(true);  // Set loading true before fetching data
+      setLoading(true);
+      setError('');
       try {
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/evidence`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`  // Fetch token from localStorage
-          }
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
         });
 
-        if (Array.isArray(response.data.evidence)) {
-          setEvidence(response.data.evidence);  // If data is an array, update evidence state
+        if (response.data && response.data.evidence) {
+          setEvidence(response.data.evidence);
         } else {
-          setError('Unexpected response format');  // Handle case where the response is not as expected
+          setError('No evidence found');
         }
-      } catch (error) {
-        console.error('Error fetching evidence:', error);
-        setError('Error fetching evidence');  // Set error state if request fails
+      } catch (err) {
+        console.error('Error fetching evidence:', err.message);
+        setError('Error fetching evidence. Please try again.');
       } finally {
-        setLoading(false);  // Set loading to false after request is complete
+        setLoading(false);
       }
     };
 
     fetchEvidence();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="error-message">{error}</div>;
+  if (loading) return <div>Loading evidence...</div>;
+  if (error) return <div style={{ color: 'red' }}>{error}</div>;
 
   return (
     <div className="evidence-list-container">
       <h2>Evidence Records</h2>
-      <div className="evidence-grid">
-        {evidence.map((item) => (
-          <EvidenceCard key={item._id} evidence={item} />
-        ))}
-      </div>
+      {evidence.length === 0 ? (
+        <p>No evidence records found.</p>
+      ) : (
+        <div className="evidence-grid">
+          {evidence.map((item) => (
+            <div key={item._id} className="evidence-card">
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

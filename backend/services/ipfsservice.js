@@ -1,53 +1,48 @@
 const { create } = require('ipfs-http-client');
 
-class IPFSService {
+class ipfsservice {
   constructor() {
-    const auth = 'Basic ' + Buffer.from(
-      process.env.IPFS_PROJECT_ID + ':' + process.env.IPFS_PROJECT_SECRET
-    ).toString('base64');
+    const auth = `Basic ${Buffer.from(
+      `${process.env.IPFS_PROJECT_ID}:${process.env.IPFS_PROJECT_SECRET}`
+    ).toString('base64')}`;
 
     this.ipfs = create({
       host: 'ipfs.infura.io',
       port: 5001,
       protocol: 'https',
-      headers: {
-        authorization: auth,
-      },
+      headers: { authorization: auth },
     });
   }
 
-  // Upload buffer to IPFS
+  // Upload file to IPFS
   async uploadToIPFS(buffer) {
     try {
-      const result = await this.ipfs.add(buffer);  // Upload the file buffer to IPFS
+      const result = await this.ipfs.add(buffer);
       return {
-        path: result.path,  // The file's path in IPFS
-        cid: result.cid.toString(),  // The unique CID (hash) of the file
-        size: result.size,           // Size of the file in bytes
+        cid: result.cid.toString(),
+        path: result.path,
+        size: result.size,
       };
     } catch (error) {
-      if (error.message.includes('unauthorized')) {
-        console.error('IPFS authorization error: Please check your project ID and secret.');
-      }
       console.error('IPFS upload error:', error.message);
       throw new Error('Failed to upload to IPFS');
     }
   }
 
-  // Retrieve file from IPFS using hash
-  async getFromIPFS(hash) {
+  // Retrieve file from IPFS
+  async getFromIPFS(cid) {
     try {
-      const stream = this.ipfs.cat(hash);
+      const stream = this.ipfs.cat(cid);
       const chunks = [];
       for await (const chunk of stream) {
         chunks.push(chunk);
       }
-      return Buffer.concat(chunks); // Return the file content as a buffer
+      return Buffer.concat(chunks);
     } catch (error) {
-      console.error(`IPFS retrieval error for hash ${hash}:`, error.message);
+      console.error('IPFS retrieval error:', error.message);
       throw new Error('Failed to retrieve from IPFS');
     }
   }
 }
 
-module.exports = new IPFSService();
+module.exports = new ipfsservice();

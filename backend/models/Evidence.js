@@ -22,14 +22,16 @@ const EvidenceSchema = new mongoose.Schema({
     required: true,
   },
   owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
+    validate: {
+      validator: function (v) {
+        // Simple Ethereum address validation (42 characters, starts with "0x")
+        return /^0x[a-fA-F0-9]{40}$/.test(v);
+      },
+      message: (props) => `${props.value} is not a valid Ethereum address!`,
+    },
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Evidence', EvidenceSchema);
