@@ -17,7 +17,7 @@ const ViewEvidence = () => {
           },
         });
 
-        if (response.data && response.data.evidence) {
+        if (response.data && response.data.success) {
           setEvidence(response.data.evidence);
         } else {
           setError('No evidence found');
